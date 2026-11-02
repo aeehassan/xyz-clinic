@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, Request, status
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import JSONResponse
 from schema import Error
 
@@ -34,13 +34,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"error": message},
     )
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": f"{exc.detail}"}
     )
     
+# Override any other unhandled exceptions that can lead to 500
+@app.exception_handler(Exception)
+async def universal_server_exception_handler(request: Request, exc: Exception):
+    # log the real exc securely for easy debugging 
+    print(f"Server error: {str(exc)}")
+    
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error"}
+    )
 
 @app.post("/reset")
 async def replace_all_slots():

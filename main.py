@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Query, Request, status
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from schema import Error
 
 
 # Custom api error definition
 class CustomErrorException(Exception):
-    def __init__(self, message: str):
-        self.status_code = self.status_code
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
         self.message = message
 
 app = FastAPI(
@@ -14,7 +16,7 @@ app = FastAPI(
     description="My API for Task 1 of the Koya Cohort 4 assessment.",
 )
 
-# Add exception to app
+# Add CustomErrorException exception to app
 @app.exception_handler(CustomErrorException)
 async def custom_error_exception_handler(request: Request, error: CustomErrorException):
     return JSONResponse(
@@ -22,6 +24,23 @@ async def custom_error_exception_handler(request: Request, error: CustomErrorExc
         content={"error": f"{error.message}"}
     )
 
+# Override default exceptions (400 and 401-499)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    message = errors[0]["msg"] if errors else "invalid request"
+    return JSONResponse(
+        status_code=400,
+        content={"error": message},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": f"{exc.detail}"}
+    )
+    
 
 @app.post("/reset")
 async def replace_all_slots():

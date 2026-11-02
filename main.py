@@ -1,11 +1,26 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request, status
+from fastapi.responses import JSONResponse
+from schema import Error
 
 
+# Custom api error definition
+class CustomErrorException(Exception):
+    def __init__(self, message: str):
+        self.status_code = self.status_code
+        self.message = message
 
 app = FastAPI(
     title="Clinic booking API",
     description="My API for Task 1 of the Koya Cohort 4 assessment.",
 )
+
+# Add exception to app
+@app.exception_handler(CustomErrorException)
+async def custom_error_exception_handler(request: Request, error: CustomErrorException):
+    return JSONResponse(
+        status_code=error.status_code,
+        content={"error": f"{error.message}"}
+    )
 
 
 @app.post("/reset")

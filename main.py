@@ -17,7 +17,7 @@ async def replace_all_slots():
 
 
 @app.get("/slots")
-async def list_slots(provider: str):
+async def list_slots(provider: str = ""):
     """Lists every slot, earliest start first."""
     pass
 
@@ -38,11 +38,11 @@ async def list_person_bookings(email: str, limit:int = Query(ge=1, le=50, defaul
 
 
 @app.get("/bookings/{id}")
-async def get_a_booking():
+async def get_a_booking(id: str):
     pass
 
 
 @app.delete("/bookings/{id}")
-async def cancel_a_booking():
+async def cancel_a_booking(id: str):
     """Sets status to cancelled and frees the slot."""
     pass

@@ -6,8 +6,10 @@ from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from database import supabase
+from postgrest.exceptions import APIError
 
-# from schema import Error
+from schema import ResetRequest
 
 # Extract X-API-KEY value
 load_dotenv()
@@ -76,12 +78,27 @@ async def universal_server_exception_handler(request: Request, exc: Exception):
 ### api endpoints 
 
 @app.post("/reset", summary="Level 1 · Replace all slots")
-async def replace_all_slots():
+async def replace_all_slots(slots: ResetRequest):
     """Deletes every booking and replaces all slots
     with the ones you send, including slots in the
     past."""
-    pass
-
+    try:
+        # Convert each slot to a dict and get an array of jsons
+        payload = []
+        for slot in slots.slots:
+            payload.append(slot.model_dump(mode="json"))
+        
+        # Execute transaction
+        supabase.rpc("reset_and_insert_slots", {"p_slots":payload}).execute()
+        return {"message": "Done"}
+    except APIError as e:
+        # error code for duplicate ids
+        print(f"PostgREST Error Code: {e.code}")
+        print(f"Message: {e.message}")
+        if (e.code == "23505"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Creating duplicate ids is not allowed")
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @app.get("/slots", summary="Level 1 · List slots")
 async def list_slots(provider: str = ""):

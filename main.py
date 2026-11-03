@@ -13,7 +13,7 @@ class CustomErrorException(Exception):
 
 app = FastAPI(
     title="Clinic booking API",
-    description="My API for Task 1 of the Koya Cohort 4 assessment.",
+    description="My API for Task 1 of the Koya Cohort 4 assessment. Every request needs the `X-API-Key` header (level 2)",
 )
 
 # Add CustomErrorException exception to app
@@ -52,7 +52,9 @@ async def universal_server_exception_handler(request: Request, exc: Exception):
         content={"error": "Internal server error"}
     )
 
-@app.post("/reset")
+### api endpoints 
+
+@app.post("/reset", summary="Level 1 · Replace all slots")
 async def replace_all_slots():
     """Deletes every booking and replaces all slots
     with the ones you send, including slots in the
@@ -60,19 +62,19 @@ async def replace_all_slots():
     pass
 
 
-@app.get("/slots")
+@app.get("/slots", summary="Level 1 · List slots")
 async def list_slots(provider: str = ""):
     """Lists every slot, earliest start first."""
     pass
 
 
-@app.post("/bookings")
+@app.post("/bookings", summary="Level 1 – 5 · Book a slot")
 async def book_slot():
     """...to be done at lvl 3"""
     pass
 
 
-@app.get("/bookings")
+@app.get("/bookings", summary="Level 4 · List a person's bookings")
 async def list_person_bookings(email: str, limit:int = Query(ge=1, le=50, default=10), cursor: str = ""):
     """That person's bookings, oldest first. The email
     match ignores case. Use cursor pagination: pass
@@ -81,12 +83,12 @@ async def list_person_bookings(email: str, limit:int = Query(ge=1, le=50, defaul
     pass
 
 
-@app.get("/bookings/{id}")
+@app.get("/bookings/{id}", summary="Level 1 · Get a booking")
 async def get_a_booking(id: str):
     pass
 
 
-@app.delete("/bookings/{id}")
+@app.delete("/bookings/{id}", summary="Level 3 · Cancel a booking")
 async def cancel_a_booking(id: str):
     """Sets status to cancelled and frees the slot."""
     pass

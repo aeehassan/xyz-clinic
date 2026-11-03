@@ -1,9 +1,17 @@
-from fastapi import FastAPI, Query, Request, status
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.responses import JSONResponse
-from schema import Error
+import os
 
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Query, Request, status
+from fastapi.exceptions import HTTPException, RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# from schema import Error
+
+# Extract X-API-KEY value
+load_dotenv()
+API_KEY = os.getenv("X_API_KEY")
 
 # Custom api error definition
 class CustomErrorException(Exception):
@@ -11,9 +19,21 @@ class CustomErrorException(Exception):
         self.status_code = status_code
         self.message = message
 
+# Define X-API-Key header
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# Validate its value
+async def verify_api_key(key: str | None = Depends(api_key_header)):
+    if key is None or key != API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API Key",
+        )
+
 app = FastAPI(
     title="Clinic booking API",
     description="My API for Task 1 of the Koya Cohort 4 assessment. Every request needs the `X-API-Key` header (level 2)",
+    dependencies=[Depends(verify_api_key)]   
 )
 
 # Add CustomErrorException exception to app
@@ -51,6 +71,7 @@ async def universal_server_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": "Internal server error"}
     )
+
 
 ### api endpoints 
 

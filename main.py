@@ -1,5 +1,8 @@
 import os
 import uuid
+import re
+
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Query, Request, status
@@ -134,10 +137,57 @@ async def list_slots(provider: str = ""):
     return slots_list
     
 
-@app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_description="Booked", response_model=Booking, status_code=status.HTTP_201_CREATED)
+@app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_model=Booking, status_code=status.HTTP_201_CREATED,
+          responses={
+              201: {"description": "Booked"},
+              400: {"description": "Missing or invalid field, or the slot has already started (level 2)"},
+              404: {"description": "The slot doesn't exist (level 2)"}
+          }
+)
 async def book_slot(new_booking: NewBooking):
-    """*Level 1:* returns 201 with the booking, status `confirmed`.
     """
+    **Level 1:** returns 201 with the booking, status `confirmed`.<br>
+    **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, or the email isn't valid. **404** if the slot doesn't exist. **400** if the slot has already started. Trim spaces from `name` and `email`, and store `email` in lower case.
+    """
+    # Validation 1: check for missing or empty string fields
+    is_missing_or_empty = (
+        not hasattr(new_booking, "slot_id") or not hasattr(new_booking, "name") or not hasattr(new_booking, "email")
+        or not str(new_booking.slot_id or "").strip()
+        or not str(new_booking.name or "").strip()
+        or not str(new_booking.email or "").strip()
+    )
+    if is_missing_or_empty:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="slot_id or name or email is missing or empty")
+    
+    # Validation 2: check for invalid fields (all fields are valid strings atp)
+    # Email regex pattern: exactly one '@', something before it, 
+    # at least a dot in the domain part (non-empty parts on both 
+    # sides of every dot), and no spaces
+    EMAIL_REGEX = r"^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$"
+    
+    # Trim spaces from name and email
+    new_booking.name = new_booking.name.strip()
+    # Store email as lowercase too
+    new_booking.email = new_booking.email.strip().lower()
+    
+    # Validate email (Must match regex)
+    email_is_invalid = not re.match(EMAIL_REGEX, new_booking.email)
+    if email_is_invalid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email is invalid")
+ 
+    
+    # Checks if a slot doesn't exist
+    slot_exists = supabase.table("slots").select("*").eq("id", new_booking.slot_id).execute().data
+    if slot_exists == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="slot doesn't exist")
+ 
+    # Check if a slot has already started
+    time_now = datetime.now(timezone.utc)  # noqa: UP017
+    start_time = datetime.fromisoformat(slot_exists[0]["start_time"])
+    
+    if time_now >= start_time:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="slot has already started")
+    
     # Add new booking to db
     new_booking_row = new_booking.model_dump(mode="json")
     new_booking_row["status"] = "confirmed"
@@ -166,7 +216,7 @@ async def get_a_booking(id: str):
     try:
         uuid.UUID(id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="slot not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="booking not found")
     
     # Get the booking
     booking = supabase.table("bookings").select("*").eq("id", id).execute().data
@@ -176,7 +226,7 @@ async def get_a_booking(id: str):
         payload = Booking.model_validate(booking[0])
         return payload
     else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="slot not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="booking not found")
     
 
 @app.delete("/bookings/{id}", summary="Level 3 · Cancel a booking")

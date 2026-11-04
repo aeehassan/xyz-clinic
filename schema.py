@@ -1,16 +1,16 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, Field
 
-# To add: example values if time allows 
+# To add: example values if time allows
+
 
 class Slot(BaseModel):
     id: str
     provider: str
     start: datetime
     end: datetime
-
 
 class SlotWithAvailability(Slot):
     available: bool

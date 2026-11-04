@@ -12,8 +12,8 @@ The project uses a Supabase (PostgreSQL) database with two tables.
 |---|---|---|
 | id | text | Primary key |
 | provider | text | Required |
-| start_time | timestamp with time zone | Required |
-| end_time | timestamp with time zone | Required |
+| start_time | timestamp with time zone (0) | Required |
+| end_time | timestamp with time zone (0) | Required |
 
 ### bookings
 
@@ -24,7 +24,7 @@ The project uses a Supabase (PostgreSQL) database with two tables.
 | name | text | Required |
 | email | text | Required |
 | status | text | Required, either `confirmed` or `cancelled`, defaults to `confirmed` |
-| created_at | timestamp with time zone | Required, set automatically |
+| created_at | timestamp with time zone (0) | Required, set automatically |
 
 ### Relationship
 

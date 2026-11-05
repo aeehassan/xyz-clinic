@@ -1,7 +1,6 @@
 import os
-import uuid
 import re
-
+import uuid
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
@@ -9,11 +8,17 @@ from fastapi import Depends, FastAPI, Query, Request, status
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from database import supabase
 from postgrest.exceptions import APIError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from schema import ResetRequest, SlotsResponse, SlotWithAvailability, NewBooking, Booking
+from database import supabase
+from schema import (
+    Booking,
+    NewBooking,
+    ResetRequest,
+    SlotsResponse,
+    SlotWithAvailability,
+)
 
 # Extract X-API-KEY value
 load_dotenv()
@@ -135,20 +140,28 @@ async def list_slots(provider: str = ""):
         )
     
     return slots_list
-    
 
 @app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_model=Booking, status_code=status.HTTP_201_CREATED,
           responses={
               201: {"description": "Booked"},
               400: {"description": "Missing or invalid field, or the slot has already started (level 2)"},
-              404: {"description": "The slot doesn't exist (level 2)"}
+              404: {"description": "The slot doesn't exist (level 2)"},
+              409: {"description": "Slot already booked (level 3)"},
+              422: {"description": "Idempotency-Key reused with a different body (level 4)"},
+              429: {"description": "Too many attempts for this email (level 5)"}
           }
 )
 async def book_slot(new_booking: NewBooking):
     """
     **Level 1:** returns 201 with the booking, status `confirmed`.<br>
-    **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, or the email isn't valid. **404** if the slot doesn't exist. **400** if the slot has already started. Trim spaces from `name` and `email`, and store `email` in lower case.
+    **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, 
+    or the email isn't valid. **404** if the slot doesn't exist. **400** 
+    if the slot has already started. Trim spaces from `name` and `email`, 
+    and store `email` in lower case. <br>
+    **Level 3:** a slot that already has a confirmed booking returns **409**. 
+    This must hold when many requests arrive at the same moment. <br>
     """
+    
     # Validation 1: check for missing or empty string fields
     is_missing_or_empty = (
         not hasattr(new_booking, "slot_id") or not hasattr(new_booking, "name") or not hasattr(new_booking, "email")
@@ -174,25 +187,34 @@ async def book_slot(new_booking: NewBooking):
     email_is_invalid = not re.match(EMAIL_REGEX, new_booking.email)
     if email_is_invalid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email is invalid")
- 
-    
+
     # Checks if a slot doesn't exist
     slot_exists = supabase.table("slots").select("*").eq("id", new_booking.slot_id).execute().data
     if slot_exists == []:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="slot doesn't exist")
- 
+
     # Check if a slot has already started
     time_now = datetime.now(timezone.utc)  # noqa: UP017
     start_time = datetime.fromisoformat(slot_exists[0]["start_time"])
     
     if time_now >= start_time:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="slot has already started")
-    
-    # Add new booking to db
-    new_booking_row = new_booking.model_dump(mode="json")
-    new_booking_row["status"] = "confirmed"
-    booking_row = supabase.table("bookings").insert(new_booking_row).execute().data[0]
-    
+
+    # A partial unique index in db on confirmed slots. 
+    # Checks if a slot has a confirmed booking. If so,
+    # 409. Otherwise, its added to the bookings table
+    try:
+        new_booking_row = new_booking.model_dump(mode="json")
+        new_booking_row["status"] = "confirmed"
+        booking_row = supabase.table("bookings").insert(new_booking_row).execute().data[0]
+    except APIError as e:
+        print(f"PostgREST Error Code: {e.code}")
+        print(f"Message: {e.message}")
+        if (e.code == "23505"):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="slot already has a confirmed booking")
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     # Return Booking instance 
     booking = Booking.model_validate(booking_row)
     return booking
@@ -229,7 +251,31 @@ async def get_a_booking(id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="booking not found")
     
 
-@app.delete("/bookings/{id}", summary="Level 3 · Cancel a booking")
+@app.delete("/bookings/{id}", summary="Level 3 · Cancel a booking", response_model=Booking,
+            responses={
+              200: {"description": "The cancelled booking"},
+              404: {"description": "No booking with that id"},
+              409: {"description": "Already cancelled"},
+            }            
+)
 async def cancel_a_booking(id: str):
-    """Sets status to cancelled and frees the slot."""
-    pass
+    """Sets `status` to `cancelled` and frees the slot."""
+    # Ensure id is a valid supabase uuid
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No booking with that id")
+    
+    # Check if booking has been canceled
+    is_cancelled = bool(supabase.table("bookings").select("*").eq("id", id).eq("status", "cancelled").execute().data)
+    if is_cancelled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already cancelled")
+    
+    # Cancel booking
+    cancelled_booking = supabase.table("bookings").update({"status": "cancelled"}).eq("id", id).execute().data
+    if cancelled_booking == []:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No booking with that id")
+    
+    # Return response
+    booking = Booking.model_validate(cancelled_booking[0])
+    return booking

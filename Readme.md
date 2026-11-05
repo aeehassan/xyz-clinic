@@ -28,7 +28,7 @@ The project uses a Supabase (PostgreSQL) database with two tables.
 
 ### Relationship
 
-One slot can have many bookings over time. And each booking belongs to exactly one slot.
+One slot can have multiple bookings over time. And each booking belongs to exactly one slot.
 
 ### Why this design
 

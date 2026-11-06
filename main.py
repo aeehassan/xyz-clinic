@@ -1,10 +1,12 @@
 import os
 import re
 import uuid
+import asyncio
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Query, Request, status
+from typing import Annotated
+from fastapi import Depends, FastAPI, Query, Request, status, Header
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
@@ -141,27 +143,9 @@ async def list_slots(provider: str = ""):
     
     return slots_list
 
-@app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_model=Booking, status_code=status.HTTP_201_CREATED,
-          responses={
-              201: {"description": "Booked"},
-              400: {"description": "Missing or invalid field, or the slot has already started (level 2)"},
-              404: {"description": "The slot doesn't exist (level 2)"},
-              409: {"description": "Slot already booked (level 3)"},
-              422: {"description": "Idempotency-Key reused with a different body (level 4)"},
-              429: {"description": "Too many attempts for this email (level 5)"}
-          }
-)
-async def book_slot(new_booking: NewBooking):
-    """
-    **Level 1:** returns 201 with the booking, status `confirmed`.<br>
-    **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, 
-    or the email isn't valid. **404** if the slot doesn't exist. **400** 
-    if the slot has already started. Trim spaces from `name` and `email`, 
-    and store `email` in lower case. <br>
-    **Level 3:** a slot that already has a confirmed booking returns **409**. 
-    This must hold when many requests arrive at the same moment. <br>
-    """
-    
+# Function for lvl 1 - 3
+def create_booking(new_booking: NewBooking) -> Booking:
+    """Creates a booking without an idempotence key"""
     # Validation 1: check for missing or empty string fields
     is_missing_or_empty = (
         not hasattr(new_booking, "slot_id") or not hasattr(new_booking, "name") or not hasattr(new_booking, "email")
@@ -218,6 +202,104 @@ async def book_slot(new_booking: NewBooking):
     # Return Booking instance 
     booking = Booking.model_validate(booking_row)
     return booking
+
+# Helper functions for lvl 4 - Optional idempotence key
+def clean_body(b: NewBooking) -> dict:
+    """Clean request body"""
+    return {
+        "slot_id": b.slot_id.strip() if b.slot_id else b.slot_id,
+        "name": b.name.strip() if b.name else b.name,
+        "email": b.email.strip().lower() if b.email else b.email,
+    }
+
+def save_result(key: str, status_code: int, body: dict):
+    """Save status code and response with the key"""
+    supabase.table("idempotency_keys").update(
+        {"status_code": status_code, "response_body": body}
+    ).eq("key", key).execute()
+
+def release_key(key: str):
+    """For concurrent requests: Delete key when one request 
+    fails to save a response as the other was waiting"""
+    supabase.table("idempotency_keys").delete().eq("key", key).execute()
+
+async def replay(key: str, body: dict):
+    """For concurrent requests: A request retries multiple 
+    times to get the results for a key until it appears"""
+    for _ in range(20):  # waits up to about 2 seconds
+        # Figure out which body took the key
+        rows = supabase.table("idempotency_keys").select("*").eq("key", key).execute().data
+        if not rows:
+            raise HTTPException(status_code=500, detail="Please retry the request")
+        # Determine a response based on which body it was
+        row = rows[0]
+        if row["request_body"] != body:
+            raise HTTPException(status_code=422, detail="Idempotency-Key reused with a different body")
+        if row["status_code"] is not None:
+            return JSONResponse(status_code=row["status_code"], content=row["response_body"])
+        await asyncio.sleep(0.1)
+    raise HTTPException(status_code=500, detail="Request is still being processed")
+
+@app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_model=Booking, status_code=status.HTTP_201_CREATED,
+          responses={
+              201: {"description": "Booked"},
+              400: {"description": "Missing or invalid field, or the slot has already started (level 2)"},
+              404: {"description": "The slot doesn't exist (level 2)"},
+              409: {"description": "Slot already booked (level 3)"},
+              422: {"description": "Idempotency-Key reused with a different body (level 4)"},
+              429: {"description": "Too many attempts for this email (level 5)"}
+          }
+)
+async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Header()] = None):
+    """
+    **Level 1:** returns 201 with the booking, status `confirmed`.<br>
+    **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, 
+    or the email isn't valid. **404** if the slot doesn't exist. **400** 
+    if the slot has already started. Trim spaces from `name` and `email`, 
+    and store `email` in lower case. <br>
+    **Level 3:** a slot that already has a confirmed booking returns **409**. 
+    This must hold when many requests arrive at the same moment. <br>
+    **Level 4:** the optional `Idempotency-Key` header. The same key with the same 
+    body returns the same response (same status code, same booking `id`) and 
+    never creates a second booking. The same key with a different body 
+    returns **422**. <br>
+    """
+    # If no key, behave like before
+    if idempotency_key is None:
+        return create_booking(new_booking)
+    
+    # Clean the body
+    body = clean_body(new_booking)
+    
+    # Claim the key
+    try:
+        supabase.table("idempotency_keys").insert(
+            {"key": idempotency_key, "request_body": body}
+        ).execute()
+    except APIError as e:
+        if e.code == "23505":  # someone already claimed it
+            return await replay(idempotency_key, body)
+        print(f"PostgREST Error Code: {e.code}")
+        print(f"Message: {e.message}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    # Create the booking and save its response to the 
+    # keys table
+    try:
+        booking = create_booking(new_booking)
+    except HTTPException as exc:
+        if exc.status_code >= 500:
+            release_key(idempotency_key)
+        else:
+            save_result(idempotency_key, exc.status_code, {"error": exc.detail})
+        raise
+    except Exception:
+        release_key(idempotency_key)
+        raise
+
+    save_result(idempotency_key, 201, booking.model_dump(mode="json"))
+    return booking
+    
 
 
 @app.get("/bookings", summary="Level 4 · List a person's bookings")

@@ -1,5 +1,7 @@
 import os
 import re
+import base64
+import json
 import uuid
 import asyncio
 from datetime import datetime, timezone
@@ -20,6 +22,8 @@ from schema import (
     ResetRequest,
     SlotsResponse,
     SlotWithAvailability,
+    BookingsPage,
+    Error
 )
 
 # Extract X-API-KEY value
@@ -301,15 +305,68 @@ async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Hea
     return booking
     
 
+# Helper functions
+def encode_cursor(row: dict) -> str:
+    """Pack created_at and id into one opaque, URL-safe string."""
+    # Id as 16 raw bytes (base64 of this is ~22 chars instead of 36)
+    id_part = base64.urlsafe_b64encode(uuid.UUID(row["id"]).bytes).decode().rstrip("=")
+    raw = json.dumps({"c": row["created_at"], "i": id_part})
+    return base64.urlsafe_b64encode(raw.encode()).decode()
 
-@app.get("/bookings", summary="Level 4 · List a person's bookings")
-async def list_person_bookings(email: str, limit:int = Query(ge=1, le=50, default=10), cursor: str = ""):
+def decode_cursor(cursor: str) -> tuple[str, str]:
+    """Unpack a cursor. Any failure means the cursor is invalid -> 400."""
+    try:
+        data = json.loads(base64.urlsafe_b64decode(cursor.encode()))
+        created_at = datetime.fromisoformat(data["c"])
+        # Restore the base64 padding that was stripped, then rebuild the UUID
+        id_bytes = base64.urlsafe_b64decode(data["i"] + "=" * (-len(data["i"]) % 4))
+        booking_id = uuid.UUID(bytes=id_bytes)
+        if created_at.tzinfo is None:
+            raise ValueError("timestamp needs a timezone")
+        return created_at.isoformat(), str(booking_id)
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid cursor")
+        
+
+@app.get("/bookings", summary="Level 4 · List a person's bookings", response_model=BookingsPage, responses={
+    200: {"description": "A page of bookings"},
+    400: {"description": "Invalid limit"}
+})
+async def list_person_bookings(email: str, limit:int = Query(default=10, description="1 to 50. Anything else returns 400."), cursor: str = None):
     """That person's bookings, oldest first. The email
     match ignores case. Use cursor pagination: pass
     next_cursor back as cursor to get the next page.
     The last page has next_cursor: null."""
-    pass
+    # Normalise the email and validate limit
+    email = email.strip().lower()
+    if not 1 <= limit <= 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid limit")
 
+    # Base query for this person's bookings (any status)
+    query = supabase.table("bookings").select("*").eq("email", email)
+    # if there is a cursor, start at that bookmark.
+    # "created_at later, OR same created_at and id >= bookmark id".
+    # The id breaks ties between rows sharing the same timestamp.
+    if cursor:
+        created_at, booking_id = decode_cursor(cursor)
+        query = query.or_(
+            f"created_at.gt.{created_at},"
+            f"and(created_at.eq.{created_at},id.gte.{booking_id})"
+        )
+
+    # oldest first, id as the tie-breaker, one extra row to detect a next page
+    rows = query.order("created_at").order("id").limit(limit + 1).execute().data
+
+    # extra row means there is another page
+    next_cursor = None
+    if len(rows) > limit:
+        next_cursor = encode_cursor(rows[limit])  # first row of the NEXT page
+        rows = rows[:limit]                        # drop the extra row
+
+    return BookingsPage(bookings=rows, next_cursor=next_cursor)
+        
+        
+        
 
 @app.get("/bookings/{id}", summary="Level 1 · Get a booking", response_model=Booking, responses={
     200: {"description": "The booking"},

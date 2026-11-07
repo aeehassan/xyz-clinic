@@ -75,7 +75,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": f"{exc.detail}"}
+        content={"error": f"{exc.detail}"},
+        headers=getattr(exc, "headers", None),  # lets Retry-After through
     )
     
 # Override any other unhandled exceptions that can lead to 500
@@ -244,6 +245,16 @@ async def replay(key: str, body: dict):
         await asyncio.sleep(0.1)
     raise HTTPException(status_code=500, detail="Request is still being processed")
 
+def check_rate_limit(email: str):
+    """Raises 429 with a Retry-After header if this email is over 5 attempts per minute."""
+    wait = supabase.rpc("check_rate_limit", {"p_email": email}).execute().data
+    if wait and wait > 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many booking attempts for this email",
+            headers={"Retry-After": str(wait)},
+        )
+
 @app.post("/bookings", summary="Level 1 – 5 · Book a slot", response_model=Booking, status_code=status.HTTP_201_CREATED,
           responses={
               201: {"description": "Booked"},
@@ -254,7 +265,7 @@ async def replay(key: str, body: dict):
               429: {"description": "Too many attempts for this email (level 5)"}
           }
 )
-async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Header()] = None):
+async def book_slot(new_booking: NewBooking, Idempotency_Key: Annotated[str, Header()] = None):
     """
     **Level 1:** returns 201 with the booking, status `confirmed`.<br>
     **Level 2: 400** if `slot_id`, `name` or `email` is missing or empty, 
@@ -267,9 +278,18 @@ async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Hea
     body returns the same response (same status code, same booking `id`) and 
     never creates a second booking. The same key with a different body 
     returns **422**. <br>
+    **Level 5:** at most 5 attempts per email per minute, failed attempts 
+    included. The 6th returns **429** with a `Retry-After` header in whole seconds.
+    Other emails aren't affected.
     """
+    # Level 5: rate limit first, before idempotency and validation,
+    # so a 429 is never saved as an idempotency response
+    email_for_limit = (new_booking.email or "").strip().lower()
+    if email_for_limit:  # no usable email means no one to count against
+        check_rate_limit(email_for_limit)
+    
     # If no key, behave like before
-    if idempotency_key is None:
+    if Idempotency_Key is None:
         return create_booking(new_booking)
     
     # Clean the body
@@ -278,11 +298,11 @@ async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Hea
     # Claim the key
     try:
         supabase.table("idempotency_keys").insert(
-            {"key": idempotency_key, "request_body": body}
+            {"key": Idempotency_Key, "request_body": body}
         ).execute()
     except APIError as e:
         if e.code == "23505":  # someone already claimed it
-            return await replay(idempotency_key, body)
+            return await replay(Idempotency_Key, body)
         print(f"PostgREST Error Code: {e.code}")
         print(f"Message: {e.message}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -293,15 +313,15 @@ async def book_slot(new_booking: NewBooking, idempotency_key: Annotated[str, Hea
         booking = create_booking(new_booking)
     except HTTPException as exc:
         if exc.status_code >= 500:
-            release_key(idempotency_key)
+            release_key(Idempotency_Key)
         else:
-            save_result(idempotency_key, exc.status_code, {"error": exc.detail})
+            save_result(Idempotency_Key, exc.status_code, {"error": exc.detail})
         raise
     except Exception:
-        release_key(idempotency_key)
+        release_key(Idempotency_Key)
         raise
 
-    save_result(idempotency_key, 201, booking.model_dump(mode="json"))
+    save_result(Idempotency_Key, 201, booking.model_dump(mode="json"))
     return booking
     
 

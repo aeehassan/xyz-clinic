@@ -51,7 +51,7 @@ The checker tests the API against all five levels. It needs `httpx`:
 
 ```bash
 pip install httpx
-python checker.py --base-url http://127.0.0.1:8000 --api-key YOUR_API_KEY
+python checker.py --base-url http://127.0.0.1:8000 --api-key YOUR_X_API_KEY
 ```
 
 | Option | What it does |

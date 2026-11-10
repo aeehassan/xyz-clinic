@@ -3,8 +3,9 @@ import uuid
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, Query, Request, status
+from fastapi import APIRouter, Depends, FastAPI, Header, Query, Request, status
 from fastapi.exceptions import HTTPException, RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from postgrest.exceptions import APIError
@@ -31,16 +32,17 @@ from utils import (
     save_result,
 )
 
-# Extract X-API-KEY value
-load_dotenv()
-API_KEY = os.getenv("X_API_KEY")
-
 
 # Custom api error definition
 class CustomErrorException(Exception):
     def __init__(self, status_code: int, message: str):
         self.status_code = status_code
         self.message = message
+
+
+# Extract X-API-KEY value
+load_dotenv()
+API_KEY = os.getenv("X_API_KEY")
 
 
 # Define X-API-Key header
@@ -60,9 +62,46 @@ app = FastAPI(
     title="Clinic booking API",
     description="My API for Task 1 of the Koya Cohort 4 assessment. Every request needs the `X-API-Key` header (level 2)",
     dependencies=[Depends(verify_api_key)],
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
+router = APIRouter()
 
+
+# Override default openapi docs
+def custom_openapi():
+    if not app.openapi_schema:
+        app.openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            openapi_version=app.openapi_version,
+            description=app.description,
+            terms_of_service=app.terms_of_service,
+            contact=app.contact,
+            license_info=app.license_info,
+            routes=app.routes,
+            tags=app.openapi_tags,
+            servers=app.servers,
+        )
+        for path, method_item in app.openapi_schema.get("paths").items():
+            for method, param in method_item.items():
+                # Make an exception for this endpoint
+                if path == "/bookings" and method == "post":
+                    continue  # Keep the 422 response and skip deletion
+
+                responses = param.get("responses")
+                # remove 422 response from all other endpoints
+                if "422" in responses:
+                    del responses["422"]
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+
+
+# {"error": "<message>"}
 # Add CustomErrorException exception to app
 @app.exception_handler(CustomErrorException)
 async def custom_error_exception_handler(request: Request, error: CustomErrorException):
@@ -103,7 +142,9 @@ async def universal_server_exception_handler(request: Request, exc: Exception):
 ### api endpoints
 
 
-@app.post("/reset", summary="Level 1 · Replace all slots", response_description="Done")
+@router.post(
+    "/reset", summary="Level 1 · Replace all slots", response_description="Done"
+)
 async def replace_all_slots(slots: ResetRequest):
     """Deletes every booking and replaces all slots
     with the ones you send, including slots in the
@@ -130,7 +171,7 @@ async def replace_all_slots(slots: ResetRequest):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@app.get(
+@router.get(
     "/slots",
     summary="Level 1 · List slots",
     response_description="The slots",
@@ -174,7 +215,7 @@ async def list_slots(provider: str = ""):
     return slots_list
 
 
-@app.post(
+@router.post(
     "/bookings",
     summary="Level 1 – 5 · Book a slot",
     response_model=Booking,
@@ -182,12 +223,19 @@ async def list_slots(provider: str = ""):
     responses={
         201: {"description": "Booked"},
         400: {
-            "description": "Missing or invalid field, or the slot has already started (level 2)"
+            "description": "Missing or invalid field, or the slot has already started (level 2)",
+            "model": Error,
         },
-        404: {"description": "The slot doesn't exist (level 2)"},
-        409: {"description": "Slot already booked (level 3)"},
-        422: {"description": "Idempotency-Key reused with a different body (level 4)"},
-        429: {"description": "Too many attempts for this email (level 5)"},
+        404: {"description": "The slot doesn't exist (level 2)", "model": Error},
+        409: {"description": "Slot already booked (level 3)", "model": Error},
+        422: {
+            "description": "Idempotency-Key reused with a different body (level 4)",
+            "model": Error,
+        },
+        429: {
+            "description": "Too many attempts for this email (level 5)",
+            "model": Error,
+        },
     },
 )
 async def book_slot(
@@ -252,13 +300,13 @@ async def book_slot(
     return booking
 
 
-@app.get(
+@router.get(
     "/bookings",
     summary="Level 4 · List a person's bookings",
     response_model=BookingsPage,
     responses={
         200: {"description": "A page of bookings"},
-        400: {"description": "Invalid limit"},
+        400: {"description": "Invalid limit", "model": Error},
     },
 )
 async def list_person_bookings(
@@ -301,13 +349,13 @@ async def list_person_bookings(
     return BookingsPage(bookings=rows, next_cursor=next_cursor)
 
 
-@app.get(
+@router.get(
     "/bookings/{id}",
     summary="Level 1 · Get a booking",
     response_model=Booking,
     responses={
         200: {"description": "The booking"},
-        404: {"description": "No booking with that id"},
+        404: {"description": "No booking with that id", "model": Error},
     },
 )
 async def get_a_booking(id: str):
@@ -332,14 +380,14 @@ async def get_a_booking(id: str):
         )
 
 
-@app.delete(
+@router.delete(
     "/bookings/{id}",
     summary="Level 3 · Cancel a booking",
     response_model=Booking,
     responses={
         200: {"description": "The cancelled booking"},
-        404: {"description": "No booking with that id"},
-        409: {"description": "Already cancelled"},
+        404: {"description": "No booking with that id", "model": Error},
+        409: {"description": "Already cancelled", "model": Error},
     },
 )
 async def cancel_a_booking(id: str):
@@ -382,3 +430,6 @@ async def cancel_a_booking(id: str):
     # Return response
     booking = Booking.model_validate(cancelled_booking[0])
     return booking
+
+
+app.include_router(router, prefix="/api")

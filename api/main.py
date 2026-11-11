@@ -60,7 +60,7 @@ async def verify_api_key(key: str | None = Depends(api_key_header)):
 
 app = FastAPI(
     title="Clinic booking API",
-    description="My API for Task 1 of the Koya Cohort 4 assessment. Every request needs the `X-API-Key` header (level 2)",
+    description="""My API for Task 1 of the Koya Cohort 4 assessment. Every request needs the `X-API-Key` header (level 2). Everything is JSON. Each endpoint says which level it belongs to. Every error response looks like `{"error": "<message>"}`.""",
     dependencies=[Depends(verify_api_key)],
     docs_url="/api/docs",
     redoc_url="/api/redoc",

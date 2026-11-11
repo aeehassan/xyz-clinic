@@ -1,7 +1,7 @@
 # Clinic Booking API
 
-**Live demo:** [your-vercel-url-here](https://your-vercel-url-here) \
-**API docs:** [your-docs-url-here](https://your-docs-url-here) (endpoints, request and response models)
+**Live demo:** [Vercel-url-here](https://xyz-clinic-amber.vercel.app/) \
+**API docs:** [Docs-url-here](https://xyz-clinic-amber.vercel.app/api/docs) (endpoints, request and response models)
 
 ## Overview
 

@@ -11,8 +11,8 @@ from fastapi.security import APIKeyHeader
 from postgrest.exceptions import APIError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from database import supabase
-from schema import (
+from api.database import supabase
+from api.schema import (
     Booking,
     BookingsPage,
     Error,
@@ -21,7 +21,7 @@ from schema import (
     SlotsResponse,
     SlotWithAvailability,
 )
-from utils import (
+from api.utils import (
     check_rate_limit,
     clean_body,
     create_booking,

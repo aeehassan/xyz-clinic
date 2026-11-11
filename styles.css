@@ -1,0 +1,1099 @@
+/* ============================================================
+   Clinic Booking — Stylesheet
+   Design tokens → Layout → Components → Utilities → Responsive
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. Design Tokens
+   ---------------------------------------------------------- */
+:root {
+  /* ---- Semantic colour variables (light mode) ---- */
+  --bg-page:           #F9FAFB;
+  --bg-surface:        #FFFFFF;
+  --bg-surface-raised: #F3F4F6;
+  --bg-inset:          #F9FAFB;
+
+  --border-default:    #E5E7EB;
+  --border-strong:     #D1D5DB;
+
+  --text-primary:      #111827;
+  --text-secondary:    #374151;
+  --text-muted:        #6B7280;
+  --text-faint:        #9CA3AF;
+
+  --accent:            #2563EB;
+  --accent-hover:      #1D4ED8;
+  --accent-focus-ring: #DBEAFE;
+  --accent-surface:    #EFF6FF;
+  --accent-solid:      #2563EB;
+  --accent-solid-hover:#1D4ED8;
+
+  --btn-disabled-bg:   #F3F4F6;
+  --btn-disabled-text: #9CA3AF;
+
+  --skeleton-base:     #F3F4F6;
+
+  --green-badge-bg:    #DCFCE7;
+  --green-badge-text:  #16A34A;
+  --red-badge-bg:      #FEE2E2;
+  --red-badge-text:    #DC2626;
+  --red-btn:           #DC2626;
+  --red-btn-hover:     #B91C1C;
+
+  --toast-bg:          #FFFFFF;
+  --toast-border:      #E5E7EB;
+  --toast-text:        #374151;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  --backdrop-bg: rgba(0, 0, 0, 0.4);
+
+  --spinner-track:     #E5E7EB;
+  --spinner-head:      #FFFFFF;
+
+  color-scheme: light;
+
+  /* ---- Palette primitives (unchanged, for reference) ---- */
+  --color-blue-600: #2563EB;
+  --color-blue-700: #1D4ED8;
+  --color-blue-100: #DBEAFE;
+  --color-blue-50:  #EFF6FF;
+
+  --color-green-600: #16A34A;
+  --color-green-100: #DCFCE7;
+
+  --color-red-600:   #DC2626;
+  --color-red-100:   #FEE2E2;
+
+  --color-white:     #FFFFFF;
+  --color-gray-50:   #F9FAFB;
+  --color-gray-100:  #F3F4F6;
+  --color-gray-200:  #E5E7EB;
+  --color-gray-300:  #D1D5DB;
+  --color-gray-400:  #9CA3AF;
+  --color-gray-500:  #6B7280;
+  --color-gray-700:  #374151;
+  --color-gray-900:  #111827;
+
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-title:   1.5rem;    /* 24px */
+  --text-body:    1rem;      /* 16px */
+  --text-caption: 0.8125rem; /* 13px */
+
+  --leading-title: 1.2;
+  --leading-body:  1.5;
+  --leading-caption: 1.5;
+
+  --tracking-title:   -0.01em;
+  --tracking-body:    0;
+  --tracking-caption:  0.01em;
+  --tracking-caps:     0.06em;
+
+  /* Weight system */
+  --weight-read:     400;
+  --weight-emphasis: 510;
+  --weight-announce: 600;
+
+  /* Spacing (8px scale) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+
+  /* Surfaces */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
+  --duration-slow:   300ms;
+  --duration-theme:  200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:  cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+
+/* ----------------------------------------------------------
+   1b. Dark mode overrides
+   ---------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg-page:           #0F1729;
+  --bg-surface:        #1A2332;
+  --bg-surface-raised: #243044;
+  --bg-inset:          #151E2D;
+
+  --border-default:    #2A3A50;
+  --border-strong:     #3A4D66;
+
+  --text-primary:      #E8ECF2;
+  --text-secondary:    #C3CEDA;
+  --text-muted:        #9AAABE;
+  --text-faint:        #7D8FA6;
+
+  --accent:            #6EA0FF;
+  --accent-hover:      #86B2FF;
+  --accent-focus-ring: rgba(110, 160, 255, 0.28);
+  --accent-surface:    rgba(110, 160, 255, 0.12);
+  --accent-solid:      #2F6FE4;
+  --accent-solid-hover:#2860D2;
+
+  --btn-disabled-bg:   #1E2D40;
+  --btn-disabled-text: #8EA0B6;
+
+  --skeleton-base:     #243044;
+
+  --green-badge-bg:    rgba(34, 197, 94, 0.16);
+  --green-badge-text:  #4ADE80;
+  --red-badge-bg:      rgba(248, 113, 113, 0.14);
+  --red-badge-text:    #F87171;
+  --red-btn:           #DC2626;
+  --red-btn-hover:     #B91C1C;
+
+  --toast-bg:          #1A2332;
+  --toast-border:      #2A3A50;
+  --toast-text:        #C3CEDA;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.5);
+
+  --backdrop-bg: rgba(0, 0, 0, 0.65);
+
+  --spinner-track:     #3A4D66;
+  --spinner-head:      #FFFFFF;
+
+  color-scheme: dark;
+}
+
+
+/* ----------------------------------------------------------
+   1c. Theme transition
+   The .theme-transitioning class is added only for the ~200ms
+   window of a manual or system theme switch, so nothing animates
+   on first paint. The reduced-motion block at the end of this
+   file overrides these durations.
+   ---------------------------------------------------------- */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition:
+    background-color var(--duration-theme) var(--ease-out),
+    color var(--duration-theme) var(--ease-out),
+    border-color var(--duration-theme) var(--ease-out),
+    box-shadow var(--duration-theme) var(--ease-out) !important;
+}
+
+
+/* ----------------------------------------------------------
+   2. Reset & Base
+   ---------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--text-body);
+  font-weight: var(--weight-read);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  color: var(--text-primary);
+  background: var(--bg-page);
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+
+/* ----------------------------------------------------------
+   3. Layout
+   ---------------------------------------------------------- */
+.app-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+
+/* ----------------------------------------------------------
+   4. Header
+   ---------------------------------------------------------- */
+.app-header {
+  position: relative;
+  padding: var(--space-6) 0 0;
+}
+
+.app-title {
+  font-size: var(--text-title);
+  font-weight: var(--weight-announce);
+  line-height: var(--leading-title);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+}
+
+
+/* ----------------------------------------------------------
+   4b. Theme toggle
+   ---------------------------------------------------------- */
+.tab-bar {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border-default);
+  padding-right: var(--space-9);
+}
+
+.theme-toggle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-raised);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Light mode shows a moon, dark mode shows a sun */
+.theme-toggle .icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle .icon-sun  { display: block; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+
+/* ----------------------------------------------------------
+   5. Tabs
+   ---------------------------------------------------------- */
+.tab-button {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-faint);
+  border-bottom: 2px solid transparent;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+  margin-bottom: -1px;
+}
+
+.tab-button:hover {
+  color: var(--text-secondary);
+}
+
+.tab-button[aria-selected="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-panel {
+  display: none;
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-10);
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+
+/* ----------------------------------------------------------
+   6. Search Input
+   ---------------------------------------------------------- */
+.search-wrapper {
+  position: relative;
+  margin-bottom: var(--space-6);
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  padding-right: var(--space-8);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.search-input::placeholder {
+  color: var(--text-faint);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus-ring);
+}
+
+.search-clear {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  color: var(--text-faint);
+  font-size: 18px;
+  line-height: 1;
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+
+.search-clear:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface-raised);
+}
+
+.search-clear.visible {
+  display: flex;
+}
+
+
+/* ----------------------------------------------------------
+   7. Date Group
+   ---------------------------------------------------------- */
+.date-heading {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  margin-bottom: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.date-heading:first-child {
+  margin-top: 0;
+}
+
+
+/* ----------------------------------------------------------
+   8. Slot Card
+   ---------------------------------------------------------- */
+.slot-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.slot-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.slot-time {
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.slot-provider {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-caption);
+}
+
+
+/* ----------------------------------------------------------
+   9. Buttons
+   ---------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-emphasis);
+  letter-spacing: var(--tracking-caption);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out),
+              opacity var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.btn-primary {
+  background: var(--accent-solid);
+  color: var(--color-white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-solid-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--bg-surface-raised);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border-default);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  color: var(--text-muted);
+  padding: var(--space-2);
+}
+
+.btn-ghost:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface-raised);
+}
+
+/* Faded state for booked / started slots */
+.btn-faded {
+  background: var(--btn-disabled-bg);
+  color: var(--btn-disabled-text);
+  cursor: not-allowed;
+}
+
+
+/* ----------------------------------------------------------
+   10. Modal
+   ---------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--backdrop-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-normal) var(--ease-out),
+              visibility var(--duration-normal);
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.modal-title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-announce);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 20px;
+  transition: color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+}
+
+.modal-close:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface-raised);
+}
+
+/* Slot summary in booking modal */
+.modal-slot-summary {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.modal-slot-summary dt {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-caption);
+  margin-bottom: var(--space-1);
+}
+
+.modal-slot-summary dd {
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.modal-slot-summary dd:last-child {
+  margin-bottom: 0;
+}
+
+/* Form fields */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-secondary);
+  letter-spacing: var(--tracking-caption);
+  margin-bottom: var(--space-1);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body);
+  color: var(--text-primary);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.form-input::placeholder {
+  color: var(--text-faint);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-focus-ring);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* Confirmation view */
+.confirmation-view {
+  text-align: center;
+}
+
+.confirmation-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--green-badge-bg);
+  color: var(--green-badge-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-4);
+  font-size: 28px;
+}
+
+.confirmation-title {
+  font-size: var(--text-body);
+  font-weight: var(--weight-announce);
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+}
+
+.confirmation-details {
+  text-align: left;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.confirmation-details dt {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-caption);
+  margin-bottom: 2px;
+}
+
+.confirmation-details dd {
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.confirmation-details dd:last-child {
+  margin-bottom: 0;
+}
+
+.confirmation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Cancel confirmation modal */
+.cancel-modal-body {
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+.cancel-modal-body p {
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-primary);
+  margin-bottom: var(--space-5);
+}
+
+.cancel-modal-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.cancel-modal-actions .btn {
+  flex: 1;
+}
+
+.btn-danger {
+  background: var(--red-btn);
+  color: var(--color-white);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--red-btn-hover);
+}
+
+
+/* ----------------------------------------------------------
+   11. My Bookings
+   ---------------------------------------------------------- */
+.bookings-search {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.bookings-search .form-input {
+  flex: 1;
+}
+
+.booking-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.booking-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.booking-provider {
+  font-size: var(--text-body);
+  font-weight: var(--weight-emphasis);
+  color: var(--text-primary);
+}
+
+.booking-time {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-caption);
+}
+
+.booking-name {
+  font-size: var(--text-caption);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-caption);
+}
+
+.booking-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* Status badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  font-size: 11px;
+  font-weight: var(--weight-emphasis);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.badge-confirmed {
+  background: var(--green-badge-bg);
+  color: var(--green-badge-text);
+}
+
+.badge-cancelled {
+  background: var(--btn-disabled-bg);
+  color: var(--text-muted);
+}
+
+/* Pagination button */
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.btn-paginate {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+
+.btn-paginate:hover {
+  background: var(--bg-inset);
+  border-color: var(--border-strong);
+}
+
+.btn-paginate svg {
+  width: 20px;
+  height: 20px;
+}
+
+
+/* ----------------------------------------------------------
+   12. Empty / Error States
+   ---------------------------------------------------------- */
+.state-message {
+  text-align: center;
+  padding: var(--space-9) var(--space-4);
+  color: var(--text-faint);
+}
+
+.state-message p {
+  font-size: var(--text-body);
+  margin-bottom: var(--space-4);
+}
+
+
+/* ----------------------------------------------------------
+   13. Skeletons
+   ---------------------------------------------------------- */
+.skeleton-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeleton-bar {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--skeleton-base);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-bar.w-40 { width: 40%; }
+.skeleton-bar.w-24 { width: 24%; }
+.skeleton-bar.w-16 { width: 64px; }
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+
+/* ----------------------------------------------------------
+   14. Toasts
+   ---------------------------------------------------------- */
+.toast-container {
+  position: fixed;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  z-index: 200;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-2);
+  max-width: 380px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--toast-bg);
+  border: 1px solid var(--toast-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-md);
+  transform: translateY(16px);
+  opacity: 0;
+  animation: toastIn var(--duration-normal) var(--ease-out) forwards;
+  min-width: 280px;
+}
+
+.toast.dismissing {
+  animation: toastOut var(--duration-fast) var(--ease-in) forwards;
+}
+
+@keyframes toastIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastOut {
+  to {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.toast-icon.success { color: var(--green-badge-text); }
+.toast-icon.error   { color: var(--red-badge-text); }
+
+.toast-message {
+  flex: 1;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-emphasis);
+  color: var(--toast-text);
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+}
+
+.toast-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  margin-top: 2px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.toast-close:hover {
+  color: var(--text-secondary);
+}
+
+
+/* ----------------------------------------------------------
+   15. Spinner
+   ---------------------------------------------------------- */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--spinner-track);
+  border-top-color: var(--spinner-head);
+  border-radius: var(--radius-full);
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ----------------------------------------------------------
+   16. Responsive
+   ---------------------------------------------------------- */
+@media (max-width: 640px) {
+  .app-container {
+    padding: 0 var(--space-3);
+  }
+
+  .slot-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .slot-card .btn {
+    align-self: flex-end;
+  }
+
+  .booking-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .booking-actions {
+    align-self: flex-end;
+  }
+
+  .bookings-search {
+    flex-direction: column;
+  }
+
+  /* Toasts go full width on mobile */
+  .toast-container {
+    left: var(--space-3);
+    right: var(--space-3);
+    max-width: none;
+  }
+
+  .toast {
+    min-width: 0;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-modal-actions {
+    flex-direction: column-reverse;
+  }
+}
+
+
+/* ----------------------------------------------------------
+   17. Reduced motion
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
+    transition: none !important;
+  }
+}

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinic Booking</title>
+
+  <!-- Apply the saved or system theme before first paint -->
+  <script>
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem('clinic-theme'); } catch (e) { theme = null; }
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ===================== Header ===================== -->
+    <header class="app-header">
+      <h1 class="app-title">Clinic Booking</h1>
+
+      <div class="tab-bar" role="tablist" aria-label="Main navigation">
+        <button role="tab"
+                id="tab-appointments"
+                data-tab="appointments"
+                aria-selected="true"
+                aria-controls="panel-appointments"
+                tabindex="0"
+                class="tab-button">Appointments</button>
+        <button role="tab"
+                id="tab-bookings"
+                data-tab="bookings"
+                aria-selected="false"
+                aria-controls="panel-bookings"
+                tabindex="-1"
+                class="tab-button">My Bookings</button>
+      </div>
+
+      <button id="theme-toggle"
+              class="theme-toggle"
+              type="button"
+              aria-pressed="false"
+              aria-label="Switch to dark mode"
+              title="Switch to dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- ============= Appointments Tab Panel ============= -->
+    <div role="tabpanel"
+         id="panel-appointments"
+         aria-labelledby="tab-appointments"
+         class="tab-panel active">
+
+      <!-- Provider search -->
+      <div class="search-wrapper">
+        <input type="text"
+               id="search-input"
+               class="search-input"
+               placeholder="Search by provider"
+               aria-label="Search by provider" />
+        <button id="search-clear"
+                class="search-clear"
+                aria-label="Clear search">&times;</button>
+      </div>
+
+      <!-- Slot list (rendered by JS) -->
+      <div id="slots-container"></div>
+    </div>
+
+    <!-- ============= My Bookings Tab Panel ============= -->
+    <div role="tabpanel"
+         id="panel-bookings"
+         aria-labelledby="tab-bookings"
+         class="tab-panel">
+
+      <div class="bookings-search">
+        <input type="email"
+               id="bookings-email"
+               class="form-input"
+               placeholder="Enter your email"
+               aria-label="Email for booking lookup" />
+        <button id="btn-find-bookings"
+                class="btn btn-primary">Find my bookings</button>
+      </div>
+
+      <!-- Bookings list (rendered by JS) -->
+      <div id="bookings-container"></div>
+    </div>
+
+  </div><!-- /.app-container -->
+
+
+  <!-- ================ Booking Modal ================ -->
+  <div id="booking-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div id="booking-modal"
+         class="modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="booking-modal-title">
+
+      <!-- Booking form view -->
+      <div id="booking-form-view">
+        <div class="modal-header">
+          <h2 class="modal-title" id="booking-modal-title">Book appointment</h2>
+          <button id="btn-modal-close"
+                  class="modal-close"
+                  aria-label="Close">&times;</button>
+        </div>
+
+        <dl class="modal-slot-summary">
+          <dt>Provider</dt>
+          <dd id="modal-provider"></dd>
+          <dt>Date</dt>
+          <dd id="modal-date"></dd>
+          <dt>Time</dt>
+          <dd id="modal-time"></dd>
+        </dl>
+
+        <div class="form-group">
+          <label for="input-name" class="form-label">Full name</label>
+          <input type="text"
+                 id="input-name"
+                 class="form-input"
+                 autocomplete="name" />
+        </div>
+
+        <div class="form-group">
+          <label for="input-email" class="form-label">Email</label>
+          <input type="email"
+                 id="input-email"
+                 class="form-input"
+                 autocomplete="email" />
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-cancel-modal"
+                  class="btn btn-secondary">Cancel</button>
+          <button id="btn-confirm-booking"
+                  class="btn btn-primary">Confirm booking</button>
+        </div>
+      </div>
+
+      <!-- Confirmation view (hidden by default) -->
+      <div id="booking-confirm-view" class="confirmation-view" style="display: none;">
+        <div class="confirmation-icon">&#10003;</div>
+        <h2 class="confirmation-title">Your appointment is booked</h2>
+
+        <dl class="confirmation-details">
+          <dt>Provider</dt>
+          <dd id="confirm-provider"></dd>
+          <dt>Date</dt>
+          <dd id="confirm-date"></dd>
+          <dt>Time</dt>
+          <dd id="confirm-time"></dd>
+          <dt>Name</dt>
+          <dd id="confirm-name"></dd>
+          <dt>Email</dt>
+          <dd id="confirm-email"></dd>
+          <dt>Status</dt>
+          <dd id="confirm-status"></dd>
+        </dl>
+
+        <div class="confirmation-actions">
+          <button id="btn-done" class="btn btn-secondary">Done</button>
+          <button id="btn-view-bookings" class="btn btn-primary">View my bookings</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================ Cancel Confirmation Modal ================ -->
+  <div id="cancel-backdrop" class="modal-backdrop" aria-hidden="true">
+    <div id="cancel-modal"
+         class="modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="cancel-modal-title">
+
+      <div class="modal-header">
+        <h2 class="modal-title" id="cancel-modal-title">Cancel appointment</h2>
+        <button class="modal-close"
+                aria-label="Close"
+                onclick="closeCancelModal()">&times;</button>
+      </div>
+
+      <div class="cancel-modal-body">
+        <p>Cancel this appointment?</p>
+        <div class="cancel-modal-actions">
+          <button id="btn-keep" class="btn btn-secondary">Keep it</button>
+          <button id="btn-yes-cancel" class="btn btn-danger">Yes, cancel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================ Toast Container ================ -->
+  <div id="toast-container"
+       class="toast-container"
+       aria-live="polite"
+       aria-relevant="additions"></div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>

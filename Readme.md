@@ -12,6 +12,9 @@ This is a clinic booking system made of a simple web page and an API. Patients c
 - **Level 4:** Safe retries with no duplicate bookings, and paged booking lists
 - **Level 5:** Spam protection on bookings
 
+> [!NOTE]
+> **Why there's no "add slots" screen:** The API has no endpoint that only adds a slot. The only way to load slots is `POST /api/reset`, which deletes every booking and slot before adding the new ones. It's meant for setting up a clean test state, so the web page leaves it out on purpose.
+
 ## Tech Stack
 
 | Part | Tool |

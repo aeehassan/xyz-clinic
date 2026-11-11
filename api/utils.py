@@ -10,8 +10,8 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
-from database import supabase
-from schema import Booking, NewBooking
+from api.database import supabase
+from api.schema import Booking, NewBooking
 
 
 # Function for lvl 1 - 3

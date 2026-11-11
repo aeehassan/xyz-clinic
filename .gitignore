@@ -3,5 +3,5 @@ pyproject.toml
 .vscode
 __pycache__
 test.py
-test_concurrency.py
-test_idempotency.py
+api\tests\test_concurrency.py
+api\tests\test_idempotency.py

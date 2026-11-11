@@ -41,6 +41,7 @@ xyz clinic/
 │   ├── app.js # Browser logic
 │   ├── index.html # Booking page
 │   └── styles.css # Page styling
+├── .vercelignore # Vercel ignore list
 ├── Readme.md # Project notes
 └── requirements.txt # Python packages
 ```

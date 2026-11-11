@@ -26,6 +26,24 @@ This is a clinic booking system made of a simple web page and an API. Patients c
 
 ## Project Structure
 
+```text
+xyz clinic/
+├── api/ # Backend service
+│   ├── tests/ # API checks
+│   │   ├── checker.py # API check script
+│   │   ├── test_concurrency.py # Race tests
+│   │   └── test_idempotency.py # Retry tests
+│   ├── database.py # Data access
+│   ├── main.py # API entry
+│   ├── schema.py # Request and response models
+│   └── utils.py # Shared helpers
+├── public/ # Frontend pages
+│   ├── app.js # Browser logic
+│   ├── index.html # Booking page
+│   └── styles.css # Page styling
+├── Readme.md # Project notes
+└── requirements.txt # Python packages
+```
 
 ## Running the Project
 
